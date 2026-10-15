@@ -1,0 +1,49 @@
+name: Build agentty_termux
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - build-termux
+
+jobs:
+  build-termux-package:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout agentty source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          path: agentty-src
+
+      - name: Setup Termux packages build environment
+        run: |
+          git clone --depth=1 https://github.com/termux/termux-packages.git termux-packages
+          # Inject package recipe from agentty repository
+          mkdir -p termux-packages/packages/agentty
+          cp agentty-src/packaging/termux/build.sh termux-packages/packages/agentty/build.sh
+
+      - name: Build agentty with termux-docker
+        run: |
+          cd termux-packages
+          ./scripts/run-docker.sh ./build-package.sh -a aarch64 agentty
+
+      - name: Collect deb and extract agentty_termux binary
+        run: |
+          mkdir -p dist
+          find termux-packages/output -name "*.deb" -exec cp {} dist/ \; || true
+          cd dist
+          for f in *.deb; do
+            [ -f "$f" ] || continue
+            ar x "$f"
+            tar -xf data.tar.*
+            find data -type f -name agentty -exec cp {} ./agentty_termux \; 2>/dev/null || true
+          done
+
+      - name: Upload agentty_termux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentty_termux-aarch64
+          path: |
+            dist/*.deb
+            dist/agentty_termux
