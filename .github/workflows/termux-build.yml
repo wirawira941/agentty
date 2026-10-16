@@ -31,13 +31,20 @@ jobs:
       - name: Collect deb and extract agentty_termux binary
         run: |
           mkdir -p dist
-          find termux-packages/output -name "*.deb" -exec cp {} dist/ \; || true
+          find termux-packages/output -name "agentty*.deb" -exec cp {} dist/ \; || true
           cd dist
-          for f in *.deb; do
+          for f in agentty*.deb; do
             [ -f "$f" ] || continue
+            # Sanitasi nama file dari karakter colon jika ada
+            safe_name=$(echo "$f" | tr ':' '_')
+            if [ "$safe_name" != "$f" ]; then
+              mv "$f" "$safe_name"
+              f="$safe_name"
+            fi
             ar x "$f"
             tar -xf data.tar.*
             find data -type f -name agentty -exec cp {} ./agentty_termux \; 2>/dev/null || true
+            rm -rf data control.tar.* data.tar.* debian-binary
           done
 
       - name: Upload agentty_termux artifacts
