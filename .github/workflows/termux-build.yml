@@ -1,0 +1,73 @@
+name: Build agentty_termux
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Publish a GitHub Release with this tag (leave empty to skip)"
+        required: false
+        default: ""
+  push:
+    branches:
+      - build-termux
+
+permissions:
+  contents: write
+
+jobs:
+  build-termux-package:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout agentty source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          path: agentty-src
+
+      - name: Setup Termux packages build environment
+        run: |
+          git clone --depth=1 https://github.com/termux/termux-packages.git termux-packages
+          # Inject package recipe from agentty repository
+          mkdir -p termux-packages/packages/agentty
+          cp agentty-src/packaging/termux/build.sh termux-packages/packages/agentty/build.sh
+
+      - name: Build agentty with termux-docker
+        run: |
+          cd termux-packages
+          ./scripts/run-docker.sh ./build-package.sh -a aarch64 agentty
+
+      - name: Collect deb and extract agentty_termux binary
+        run: |
+          mkdir -p dist
+          find termux-packages/output -name "agentty*.deb" -exec cp {} dist/ \; || true
+          cd dist
+          for f in agentty*.deb; do
+            [ -f "$f" ] || continue
+            # Sanitasi nama file dari karakter colon jika ada
+            safe_name=$(echo "$f" | tr ':' '_')
+            if [ "$safe_name" != "$f" ]; then
+              mv "$f" "$safe_name"
+              f="$safe_name"
+            fi
+            ar x "$f"
+            tar -xf data.tar.*
+            find data -type f -name agentty -exec cp {} ./agentty_termux \; 2>/dev/null || true
+            rm -rf data control.tar.* data.tar.* debian-binary
+          done
+
+      - name: Upload agentty_termux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentty_termux-aarch64
+          path: |
+            dist/*.deb
+            dist/agentty_termux
+
+      - name: Publish release
+        if: ${{ inputs.release_tag != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ inputs.release_tag }}" dist/*.deb dist/agentty_termux \
+            --title "agentty ${{ inputs.release_tag }} (Termux aarch64)" \
+            --notes "Build agentty untuk Termux (aarch64, native bionic PIE) dari resep packaging/termux. Pasang: pkg install -y libc++ libnghttp2 openssl lalu dpkg -i agentty_*.deb — atau salin binary agentty_termux ke PREFIX/bin/agentty."
