@@ -69,5 +69,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${{ inputs.release_tag }}" dist/*.deb dist/agentty_termux \
+            --repo "${{ github.repository }}" \
             --title "agentty ${{ inputs.release_tag }} (Termux aarch64)" \
             --notes "Build agentty untuk Termux (aarch64, native bionic PIE) dari resep packaging/termux. Pasang: pkg install -y libc++ libnghttp2 openssl lalu dpkg -i agentty_*.deb — atau salin binary agentty_termux ke PREFIX/bin/agentty."
