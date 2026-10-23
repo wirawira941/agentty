@@ -6,6 +6,10 @@ against Termux's own clang and libraries.
 
 ## Install from the release (no building)
 
+> **Status:** the package installs cleanly, but on the tested device the
+> binary currently dies at startup — see
+> [Known issues](#known-issues) before installing.
+
 Prebuilt packages are published on this fork's releases, e.g.
 [v0.9.31-termux.1](https://github.com/wirawira941/agentty/releases/tag/v0.9.31-termux.1):
 
@@ -30,9 +34,17 @@ Run it against any OpenAI-compatible endpoint, e.g. a local 9Router:
 agentty --provider 127.0.0.1:20128 -k <API_KEY> -m big-pickle
 ```
 
-If shell commands inside agentty fail to run, start it with
-`--sandbox off` — the claybin sandbox needs kernel features
-(`SECCOMP_RET_USER_NOTIF`, landlock) that are not available everywhere.
+## Known issues
+
+- **Startup crash — `Bad system call` (SIGSYS).** On the tested Android
+  device, the v0.9.31-termux.1 binary dies immediately at startup,
+  before the TUI appears: Android's per-app seccomp filter kills a
+  syscall the binary attempts early in startup. `--sandbox off` does
+  **not** change this, so the claybin sandbox is not the (only) trigger.
+  The exact syscall has not been identified yet — an
+  `strace -f agentty --version` capture on the device is the next
+  diagnostic step. Until that is resolved, treat this release as
+  **not yet working on Android**.
 
 ## Why a source build (not the official release binary)
 
