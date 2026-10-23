@@ -2,9 +2,17 @@ name: Build agentty_termux
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Publish a GitHub Release with this tag (leave empty to skip)"
+        required: false
+        default: ""
   push:
     branches:
       - build-termux
+
+permissions:
+  contents: write
 
 jobs:
   build-termux-package:
@@ -54,3 +62,12 @@ jobs:
           path: |
             dist/*.deb
             dist/agentty_termux
+
+      - name: Publish release
+        if: ${{ inputs.release_tag != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ inputs.release_tag }}" dist/*.deb dist/agentty_termux \
+            --title "agentty ${{ inputs.release_tag }} (Termux aarch64)" \
+            --notes "Build agentty untuk Termux (aarch64, native bionic PIE) dari resep packaging/termux. Pasang: pkg install -y libc++ libnghttp2 openssl lalu dpkg -i agentty_*.deb — atau salin binary agentty_termux ke PREFIX/bin/agentty."
