@@ -16,7 +16,7 @@ TERMUX_PKG_SRCURL=https://github.com/agentty-org/agentty/releases/download/v${TE
 TERMUX_PKG_SHA256=203e791bcdfc30e808e6690df916563be345a0b2debf4d95094b7c70f7776e87
 TERMUX_PKG_AUTO_UPDATE=true
 
-TERMUX_PKG_DEPENDS="libc++, libnghttp2, openssl"
+TERMUX_PKG_DEPENDS="libc++, libnghttp2, openssl, simdjson"
 # nlohmann-json and simdjson are header/static deps resolved by find_package.
 # agentty's CMake declares both with FIND_PACKAGE_ARGS, so a system copy is
 # used when present and nothing is downloaded at configure time.
